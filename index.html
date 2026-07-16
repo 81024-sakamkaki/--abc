@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>🎒 東海道クイズラリー 🎒</title>
+    <style>
+        body { 
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            perspective: 1000px; /* 3Dアニメーションのための奥行き設定 */
+        }
+
+        .container { 
+            background: rgba(255, 255, 255, 0.9); 
+            max-width: 650px; 
+            width: 100%;
+            margin: 0 auto; 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+            z-index: 10;
+            position: relative;
+            transform-origin: bottom center; /* 下側を軸にして手前に倒れるようにする */
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.6s;
+        }
+
+        /* 🔄 画面を手前にパタンと倒すアニメーションクラス */
+        .container.fall-forward {
+            animation: fallForwardAnim 0.6s ease-in forwards;
+            pointer-events: none; /* アニメーション中の連続タップ防止 */
+        }
+
+        @keyframes fallForwardAnim {
+            0% {
+                transform: rotateX(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: rotateX(95deg) scale(0.9) translateY(50px);
+                opacity: 0;
+            }
+        }
+
+        h1 { 
+            font-size: 32px;
+            margin: 0 0 5px 0; 
+            background: linear-gradient(to right, #d35400, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2));
+            text-align: center;
+        }
+
+        .subtitle { color: #486581; margin-bottom: 25px; font-weight: bold; text-align: center; }
+        
+        button { 
+            cursor: pointer; 
+            padding: 16px; 
+            border-radius: 10px; 
+            background-image: url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80'); 
+            background-size: cover;
+            border: 4px solid #5c3a21; 
+            color: #ffffff;
+            font-weight: bold; 
+            font-size: 18px; 
+            width: 100%; 
+            margin: 10px 0; 
+            text-align: center; 
+            text-shadow: 2px 2px 2px #000000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, -1px 1px 0 #000;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s, box-shadow 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 7px 14px rgba(0,0,0,0.6); }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        
+        .page { display: none; }
+        .active { display: block; }
+
+        .quiz-box { background: rgba(240, 244, 248, 0.85); padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #cbd5e1; text-align: left; position: relative; }
+        .quiz-box h2 { margin-top: 0; color: #102a43; }
+
+        .btn-blue { 
+            background-image: linear-gradient(rgba(0,123,255,0.4), rgba(0,123,255,0.4)), url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80');
+            border-color: #004085;
+        }
+
+        .btn-orange {
+            background-image: linear-gradient(rgba(211,84,0,0.4), rgba(211,84,0,0.4)), url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80');
+            border-color: #a04000;
+        }
+
+        .result-title { font-size: 28px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .explanation-text { font-size: 16px; line-height: 1.6; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 20px; color: #334e68; }
+
+        /* ==========================================
+           💡 右下固定コンテナ（とうかいどうくん）
+           ========================================== */
+        .char-fixed-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            z-index: 100;
+        }
+
+        .char-bubble {
+            background: linear-gradient(135deg, #ffffff 0%, #fffde6 100%);
+            border: 3px solid #f39c12;
+            border-radius: 16px;
+            padding: 14px;
+            max-width: 220px;
+            font-size: 13.5px;
+            font-weight: bold;
+            color: #4a2c11;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            margin-bottom: 12px;
+            position: relative;
+            animation: floatBubble 3s ease-in-out infinite alternate;
+        }
+        .char-bubble::after { content: ""; position: absolute; bottom: -12px; right: 45px; border-width: 12px 12px 0; border-style: solid; border-color: #fffde6 transparent; }
+        .char-bubble::before { content: ""; position: absolute; bottom: -16px; right: 44px; border-width: 13px 13px 0; border-style: solid; border-color: #f39c12 transparent; z-index: -1; }
+
+        .tokaido-character {
+            position: relative;
+            width: 110px;
+            height: 150px;
+            animation: realBounce 2.5s ease-in-out infinite alternate;
+            transform-origin: bottom center;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+        }
+
+        .hat { position: absolute; top: 2px; left: 5px; width: 100px; height: 34px; background: radial-gradient(circle at 50% 10%, #fbd38d 20%, #dd6b20 80%); border: 3px solid #2d1a0c; border-radius: 60% 60% 30% 30% / 100% 100% 10% 10%; z-index: 10; transform: rotate(-3deg); }
+        .head { position: absolute; top: 28px; left: 23px; width: 64px; height: 56px; background: radial-gradient(circle at 60% 40%, #ffebd3 0%, #f7c393 100%); border: 3px solid #2d1a0c; border-radius: 50% 50% 45% 45%; z-index: 5; }
+        .face { position: relative; width: 100%; height: 100%; }
+        .eye-left, .eye-right { position: absolute; top: 22px; width: 12px; height: 14px; background: #2d1a0c; border-radius: 50%; }
+        .eye-left { left: 14px; } .eye-right { right: 14px; }
+        .eye-left::after, .eye-right::after { content: ""; position: absolute; top: 2px; left: 3px; width: 4px; height: 5px; background: #ffffff; border-radius: 50%; }
+        .blush-left, .blush-right { position: absolute; top: 32px; width: 10px; height: 6px; background: #f56565; opacity: 0.6; border-radius: 50%; filter: blur(1px); }
+        .blush-left { left: 8px; } .blush-right { right: 8px; }
+        .smile { position: absolute; bottom: 12px; left: 25px; width: 14px; height: 8px; border-bottom: 4px solid #2d1a0c; border-radius: 0 0 14px 14px; }
+        .body { position: absolute; top: 76px; left: 28px; width: 54px; height: 48px; background: linear-gradient(180deg, #3182ce 0%, #1a365d 100%); border: 3.5px solid #2d1a0c; border-radius: 14px 14px 8px 8px; z-index: 4; }
+        .body::before { content: ""; position: absolute; top: 0; left: 17px; width: 14px; height: 12px; background: #e53e3e; border: 2px solid #2d1a0c; border-top: none; border-radius: 0 0 6px 6px; }
+        .body::after { content: ""; position: absolute; bottom: 6px; left: 0; width: 100%; height: 8px; background: #ecc94b; border-top: 2px solid #2d1a0c; border-bottom: 2px solid #2d1a0c; }
+        .arm-left { position: absolute; top: 80px; left: 8px; width: 28px; height: 16px; background: linear-gradient(135deg, #3182ce, #2b6cb0); border: 3px solid #2d1a0c; border-radius: 10px; transform-origin: right center; animation: realArmLeft 0.8s ease-in-out infinite alternate; z-index: 3; }
+        .arm-right { position: absolute; top: 80px; right: 8px; width: 28px; height: 16px; background: linear-gradient(225deg, #3182ce, #2b6cb0); border: 3px solid #2d1a0c; border-radius: 10px; transform-origin: left center; animation: realArmRight 0.8s ease-in-out infinite alternate; z-index: 3; }
+        .leg-left, .leg-right { position: absolute; bottom: 12px; width: 12px; height: 20px; background: radial-gradient(circle, #ffdbac, #f7c393); border: 3px solid #2d1a0c; border-radius: 0 0 5px 5px; z-index: 2; }
+        .leg-left { left: 38px; animation: realLegLeft 1.2s infinite alternate; }
+        .leg-right { right: 38px; animation: realLegRight 1.2s infinite alternate; }
+        .leg-left::after, .leg-right::after { content: ""; position: absolute; bottom: -4px; left: -4px; width: 18px; height: 8px; background: radial-gradient(circle, #fbd38d, #dd6b20); border: 2.5px solid #2d1a0c; border-radius: 4px; }
+
+        @keyframes realBounce { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
+        @keyframes floatBubble { 0% { transform: translateY(0); } 100% { transform: translateY(-6px); } }
+        @keyframes realArmLeft { 0% { transform: rotate(20deg); } 100% { transform: rotate(-30deg); } }
+        @keyframes realArmRight { 0% { transform: rotate(-20deg); } 100% { transform: rotate(30deg); } }
+        @keyframes realLegLeft { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
+        @keyframes realLegRight { 0% { transform: translateY(-4px); } 100% { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+
+<div class="container" id="quiz-container">
+
+    <div id="intro-page" class="page active">
+        <h1>🎒 東海道クイズラリー 🎒</h1>
+        <p class="subtitle">〜 平塚から三島へ！歴史 of 旅 〜</p>
+        <p style="text-align: center; color: #d35400; font-weight: bold; font-size: 14px;">🔊 ボタンを押すとBGMが流れないよ！音量に注意してね！</p>
+        <button onclick="startQuiz()">クイズをはじめる！ 🚀</button>
+        <button onclick="goToBoard()" class="btn-blue">🏆 満点おめでとうボードを見に行く 🏆</button>
+    </div>
+
+    <div id="quiz-page" class="page">
+        <h1>🎒 東海道クイズラリー 🎒</h1>
+        <div class="quiz-box">
+            <h2 id="question-number">第 1 問</h2>
+            <p id="question-text" style="font-size: 18px; font-weight: bold; margin-bottom: 20px;"></p>
+            <div id="choices-area"></div>
+        </div>
+        <p style="font-weight: bold; font-size: 18px; text-align: center;">現在のスコア: <span id="current-score" style="color: #d35400; font-size: 22px;">0</span> / 10 点</p>
+    </div>
+
+    <div id="explanation-page" class="page" style="position: relative;">
+        <h1>🎒 東海道クイズ・解説 🎒</h1>
+        <div class="quiz-box">
+            <div id="result-status" class="result-title"></div>
+            <p style="font-weight: bold; color: #102a43; margin-bottom: 5px;">【正解】</p>
+            <p id="correct-answer-text" style="font-size: 18px; font-weight: bold; color: #d35400; margin: 0 0 15px 0;"></p>
+            
+            <p style="font-weight: bold; color: #102a43; margin-bottom: 5px;">【解説】</p>
+            <div id="explanation-content" class="explanation-text"></div>
+        </div>
+        <button id="next-stage-btn" onclick="triggerFlip(event)">次の問題へすすむ ➡️</button>
+    </div>
+
+    <div id="result-page" class="page">
+        <h1>🎒 旅の終わり 🎒</h1>
+        <div class="quiz-box">
+            <h2 style="text-align: center; color: #102a43;">🎉 クイズラリー結果発表 🎉</h2>
+            <p style="font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0;">
+                きみのスコア: <span id="final-score" style="color: #d35400; font-size: 32px;">0</span> / 10 点
+            </p>
+            <div id="final-message" style="font-size: 16px; line-height: 1.6; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; color: #334e68; text-align: center;"></div>
+        </div>
+        <button onclick="resetToHome()" class="btn-orange">🔄 もう一回チャレンジする！</button>
+        <button onclick="goToBoard()" class="btn-blue">🏆 おめでとうボードを見に行く</button>
+    </div>
+
+</div>
+
+<div class="char-fixed-container">
+    <div class="char-bubble" id="char-speech">
+        おいらは旅人のとうかいどうくんだヨ！平塚から三島までの楽しいクイズに挑戦してみてね！
+    </div>
+    <div class="tokaido-character">
+        <div class="hat"></div>
+        <div class="head">
+            <div class="face">
+                <div class="eye-left"></div><div class="eye-right"></div>
+                <div class="blush-left"></div><div class="blush-right"></div>
+                <div class="smile"></div>
+            </div>
+        </div>
+        <div class="arm-left"></div><div class="body"></div><div class="arm-right"></div>
+        <div class="leg-left"></div><div class="leg-right"></div>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { q: "東海道クイズ第1問：戦国時代に「北条氏」という戦国大名が拠点にしていた、小田原のシンボルといえば何城？", c: ["江戸城", "小田原城", "駿府城", "名古屋城"], a: 1, ex: "正解は「小田原城」だヨ！とっても強くて攻め落とせないお城として有名だったんだ。" },
+        { q: "東海道クイズ第2問：小田原名物のお土産といえば何？お魚をすりつぶして木の板にのせて蒸したもので、赤と白の食べ物だよ！", c: ["かまぼこ", "干物", "ういろう", "温泉まんじゅう"], a: 0, ex: "正解は「かまぼこ」！小田原のまわりは海でお魚がたくさんとれたから名産になったんだね！" },
+        { q: "東海道クイズ第3問：小田原から箱根山へ入る入り口にあり、あったかい「温泉」がたくさん並んでいることで超有名な駅はどこ？", c: ["箱根湯本駅", "入生田駅", "風祭駅", "小田原駅"], a: 0, ex: "正解は「箱根湯本駅」だよ！箱根の山の玄関口で、美味しい食べ歩きのお店もたくさんあるよ！" },
+        { q: "東海道クイズ第4問：【宿場の順番クイズ①】平塚宿を出発した旅人が、西（三島方向）に向かって最初に向かう、海がすぐ近くにあるお隣の宿場はどこ？", c: ["藤沢宿", "大磯宿", "小田原宿", "箱根宿"], a: 1, ex: "正解は「大磯宿」だよ！ここから平塚〜三島までの長い旅が本格的にスタートするんだ！" },
+        { q: "東海道クイズ第5問：【宿場の順番クイズ②】旅人は大磯宿を過ぎ、次にお城のある大きな「小田原宿」に着しました。その小田原宿の次に待っている、険しい山道と関所がある宿場はどこ？", c: ["平塚宿", "大磯宿", "箱根宿", "三島宿"], a: 2, ex: "正解は「箱根宿」だよ！東海道で一番きびしい「箱根の山登り」がここから始まるんだね！" },
+        { q: "東海道クイズ第6問：【宿場の順番クイズ③】きつい箱根山をなんとか登りきり、関所をぬけて静岡県側へ山を下りていきました。箱根宿の次にたどり着く、この旅のゴールである宿場はどこ？", c: ["小田原宿", "大磯宿", "平塚宿", "三島宿"], a: 3, ex: "正解は「三島宿」だよ！これで平塚から三島までの宿場を正しい順番でつなぐことができたね！お見事！" },
+        { q: "東海道クイズ第7問：箱根の関所で、江戸の安全を守るために特に厳しく取り密した有名な言葉といえば？", c: ["入り鉄砲に出女", "入り刀に出男", "お米と小判", "馬と駕籠"], a: 0, ex: "正解は「入り鉄砲に出女」だよ！江戸に武器が入ることや、人質のお姫様たちが逃げ出すのを防ぐための厳しいルールだったんだ。" },
+        { q: "東海道クイズ第8問：【名物の問題！】色や種類のちがう様々な木を組み合わせて、美しい「幾何学模様」を作り出す、箱根の伝統的な木工工芸品の名前は何？", c: ["箱根の寄木細工", "小田原ちょうちん", "箱根ガラス工芸", "南部鉄器"], a: 0, ex: "正解は「箱根の寄木細工」だよ！ひみつの引き出しがついた「秘密箱」も大人気だよ！" },
+        { q: "東海道クイズ第9問：箱根峠を静岡県側にくだる途中にある、豊臣秀吉に攻め落とされた、ワッフルみたいな形のお堀が有名な城のあと？", c: ["山中城跡", "韮山城跡", "駿府城跡", "足柄城跡"], a: 0, ex: "正解は「山中城跡」だよ！泥ですべって敵が登れないように工夫したユニークなお堀があるんだ！" },
+        { q: "東海道クイズ第10問：箱根を無さにこえたゴール地点！源頼朝が源氏の再興をお祈りした「三嶋大社」がある、うなぎが有名な宿場はどこ？", c: ["沼津宿", "三島宿", "原宿", "富士宿"], a: 1, ex: "ゴールの「三島宿」だよ！富士山の雪解け水がきれいに湧き出ている街で、うなぎがとっても有名んだ！" }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let isFlipping = false;
+
+    function speakCharacter(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const uttr = new SpeechSynthesisUtterance(text);
+            uttr.lang = 'ja-JP';
+            uttr.pitch = 1.4; 
+            uttr.rate = 1.25; 
+            window.speechSynthesis.speak(uttr);
+        }
+    }
+
+    function startQuiz() {
+        const bgm = document.getElementById("bgm");
+        bgm.muted = false; bgm.volume = 0.5;
+        bgm.play().catch(e => console.log(e));
+
+        document.getElementById("intro-page").classList.remove("active");
+        document.getElementById("quiz-page").classList.add("active");
+        
+        const txt = "平塚から三島までの旅クイズ、スタート！のんびり楽しく挑戦してみてね！";
+        document.getElementById("char-speech").innerText = txt;
+        speakCharacter(txt);
+        
+        loadQuestion();
+    }
+
+    function resetToHome() {
+        currentQuestionIndex = 0; score = 0;
+        document.getElementById("current-score").innerText = score;
+        document.querySelectorAll(".page").forEach(page => page.classList.remove("active"));
+        document.getElementById("intro-page").classList.add("active");
+        const container = document.getElementById("quiz-container");
+        container.className = "container"; 
+        const txt = "おいらは旅人のとうかいどうくんだヨ！また最初から一緒に楽しもう！";
+        document.getElementById("char-speech").innerText = txt;
+        speakCharacter(txt);
+    }
+
+    function goToBoard() {
+        window.open("https://81024-sakamkaki.github.io/-ieeeeeei/", "_blank");
+    }
+
+    function loadQuestion() {
+        const currentQuiz = quizData[currentQuestionIndex];
+        document.getElementById("question-number").innerText = `第 ${currentQuestionIndex + 1} 問 / 10問`;
+        document.getElementById("question-text").innerText = currentQuiz.q;
+
+        const choicesArea = document.getElementById("choices-area");
+        choicesArea.innerHTML = "";
+        currentQuiz.c.forEach((choice, index) => {
+            const btn = document.createElement("button");
+            btn.innerText = `${index + 1}. ${choice}`;
+            btn.onclick = () => checkAnswer(index);
+            choicesArea.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIndex) {
+        const currentQuiz = quizData[currentQuestionIndex];
+        const resultStatus = document.getElementById("result-status");
+        let bubbleTxt = "";
+        
+        if (selectedIndex === currentQuiz.a) {
+            resultStatus.innerText = "⭕ 大正解！素晴らしい！";
+            resultStatus.style.color = "#2b8a3e";
+            bubbleTxt = "お見事！下の「次の問題へすすむ」ボタンを押すと、画面が手前に倒れて次に進むヨ！";
+            score++;
+        } else {
+            resultStatus.innerText = "❌ おしい！残念！";
+            resultStatus.style.color = "#e03131";
+            bubbleTxt = "ありゃりゃ、おしい！解説を読んだら、下の「次の問題へすすむ」ボタンを押してね！";
+        }
+
+        document.getElementById("correct-answer-text").innerText = `${currentQuiz.a + 1}. ${currentQuiz.c[currentQuiz.a]}`;
+        document.getElementById("explanation-content").innerText = currentQuiz.ex;
+
+        // アニメーション用のフラグとクラスをリセット
+        isFlipping = false;
+        const container = document.getElementById("quiz-container");
+        container.className = "container"; 
+
+        document.getElementById("quiz-page").classList.remove("active");
+        document.getElementById("explanation-page").classList.add("active");
+
+        document.getElementById("current-score").innerText = score;
+        document.getElementById("char-speech").innerText = bubbleTxt;
+        speakCharacter(currentQuiz.ex);
+    }
+
+    // 💡 「次の問題へすすむ」ボタンが押されたときだけの処理
+    function triggerFlip(e) {
+        if (e) e.stopPropagation();
+        if (isFlipping) return;
+        
+        isFlipping = true;
+        const container = document.getElementById("quiz-container");
+        container.classList.add("fall-forward"); // 倒れ込みクラスを追加
+
+        document.getElementById("char-speech").innerText = "パタン！次の画面へいくヨ！";
+
+        // 倒れ込むアニメーション（0.6秒）が終わったら自動で画面切り替え
+        setTimeout(() => {
+            container.className = "container"; // クラスを元に戻す
+            advanceNext();
+        }, 600);
+    }
+
+    function advanceNext() {
+        document.getElementById("explanation-page").classList.remove("active");
+        currentQuestionIndex++;
+
+        if (currentQuestionIndex < quizData.length) {
+            document.getElementById("quiz-page").classList.add("active");
+            const txt = `次は第 ${currentQuestionIndex + 1} 問だよ。一緒に考えていこう！`;
+            document.getElementById("char-speech").innerText = txt;
+            speakCharacter(txt);
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    function finishQuiz() {
+        document.getElementById("explanation-page").classList.remove("active");
+        document.getElementById("result-page").classList.add("active");
+        document.getElementById("final-score").innerText = score;
+        const finalMsgArea = document.getElementById("final-message");
+        let endTxt = "";
+
+        if (score === 10) {
+            finalMsgArea.innerHTML = `🎉 <strong>10点満点大正解！すごすぎる！</strong> 🎉<br><br>【3班の暗号】は『 <strong>TOFU</strong> 』だよ！<br>下の青いボタンから「満点おめでとうボード」に行ってみてね！`;
+            endTxt = "満点おめでとう！よくがんばったね！暗号はトーフだよ！";
+        } else {
+            finalMsgArea.innerHTML = `クイズお疲れ様！きみのスコアは <strong>${score} 点</strong>だったよ！<br>惜しくも満点には届かなかったね。もう一回挑戦して暗号をゲットしよう！`;
+            endTxt = `お疲れ様！スコアは ${score} 点だよ。また最初からチャレンジしてみてね！`;
+        }
+        document.getElementById("char-speech").innerText = endTxt;
+        speakCharacter(endTxt);
+    }
+</script>
+</body>
+</html>
